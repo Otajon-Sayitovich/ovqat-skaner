@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<title>Ovqat tarqatish — skaner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --line: #2a323d;
+  --text: #e6edf3;
+  --muted: #8b98a5;
+  --green: #1f8a4c;
+  --green-soft: #d8f5df;
+  --red: #d13b3b;
+  --red-soft: #ffe0e0;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  overscroll-behavior: none;
+}
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+/* ---------------------------------------------------------------- sozlash */
+.setup { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.setup-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+              padding: 24px; width: 100%; max-width: 420px; }
+.setup-card h1 { margin: 0 0 4px; font-size: 20px; }
+label { display: block; font-size: 13px; color: var(--muted); margin-top: 16px; }
+input {
+  width: 100%; margin-top: 6px; padding: 12px 14px; font-size: 16px;
+  background: #0d1117; border: 1px solid var(--line); border-radius: 10px; color: var(--text);
+}
+input:focus { outline: none; border-color: var(--green); }
+.btn {
+  display: block; width: 100%; margin-top: 20px; padding: 15px; font-size: 17px;
+  font-weight: 700; border: 0; border-radius: 10px; background: var(--green);
+  color: #fff; cursor: pointer; font-family: inherit;
+}
+.btn:disabled { opacity: .5; }
+.btn-sec { background: transparent; border: 1px solid var(--line); color: var(--text); }
+.err { margin-top: 14px; padding: 10px 12px; border-radius: 8px;
+       background: rgba(209,59,59,.15); color: #ff9c9c; font-size: 14px; }
+
+/* ---------------------------------------------------------------- skaner */
+.scan { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+       padding-top: calc(10px + env(safe-area-inset-top));
+       background: var(--panel); border-bottom: 1px solid var(--line); font-size: 13px; }
+.bar .grow { flex: 1; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+.dot.off { background: #d29922; }
+.bar button { background: transparent; border: 0; color: var(--muted); font-size: 20px;
+              cursor: pointer; padding: 4px 8px; }
+
+.stage { position: relative; flex: 1; overflow: hidden; background: #000; }
+#video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.frame { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+         width: min(72vw, 62vh); aspect-ratio: 1; border: 3px solid rgba(255,255,255,.9);
+         border-radius: 18px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); }
+.hint { position: absolute; left: 0; right: 0; bottom: 24px; text-align: center;
+        color: #fff; font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+.startbox { position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
+
+/* ---------------------------------------------------------------- natija */
+.result { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; padding: 24px;
+          padding-bottom: calc(24px + env(safe-area-inset-bottom)); text-align: center; }
+.result.ok  { background: var(--green-soft); color: #10371f; }
+.result.bad { background: var(--red-soft);  color: #4a1010; }
+.result .id { font-size: 15px; font-weight: 800; letter-spacing: .14em; opacity: .65; }
+.result .name { font-size: clamp(26px, 8vw, 44px); font-weight: 800; line-height: 1.15; margin: 10px 0 6px; }
+.result .meta { font-size: clamp(16px, 4.5vw, 22px); opacity: .8; }
+.result .msg { font-size: clamp(19px, 5.5vw, 28px); font-weight: 800; margin-top: 18px; color: #8b1d1d; }
+.result .acts { position: absolute; left: 20px; right: 20px;
+                bottom: calc(24px + env(safe-area-inset-bottom)); display: flex; gap: 12px; }
+.result .acts button { flex: 1; padding: 20px; font-size: 19px; font-weight: 800;
+                       border: 0; border-radius: 14px; cursor: pointer; font-family: inherit; }
+.save-ok  { background: var(--green); color: #fff; }
+.save-bad { background: var(--red); color: #fff; }
+.cancel   { background: rgba(0,0,0,.12); color: inherit; }
+
+.toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+         background: rgba(0,0,0,.85); color: #fff; padding: 10px 18px; border-radius: 10px;
+         z-index: 30; font-size: 14px; max-width: 88vw; }
+</style>
+</head>
+<body>
+
+<!-- birinchi ishga tushirish -->
+<div id="setup" class="setup hidden">
+  <form id="setup-form" class="setup-card">
+    <h1>Ovqat tarqatish</h1>
+    <p class="muted small">Skanerni tizimga ulash — bir marta kiritiladi.</p>
+    <label>Tizim havolasi (Apps Script)
+      <input id="s-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" required>
+    </label>
+    <label>Elektron pochta
+      <input id="s-email" type="email" autocomplete="username" required>
+    </label>
+    <label>Parol
+      <input id="s-pass" type="password" autocomplete="current-password" required>
+    </label>
+    <div id="s-err" class="err hidden"></div>
+    <button class="btn" type="submit">Ulash</button>
+  </form>
+</div>
+
+<!-- skaner -->
+<div id="scan" class="scan hidden">
+  <div class="bar">
+    <span id="net"><span class="dot"></span></span>
+    <span id="stat" class="muted grow"></span>
+    <button id="btn-exit" title="Chiqish">⎋</button>
+  </div>
+  <div class="stage">
+    <video id="video" playsinline muted autoplay></video>
+    <div id="frame" class="frame hidden"></div>
+    <div id="hint" class="hint hidden">QR kodni ramka ichiga tuting</div>
+    <div id="startbox" class="startbox">
+      <p class="muted" id="start-text">Kamera tayyorlanmoqda…</p>
+      <button id="btn-start" class="btn hidden" style="max-width:260px">Kamerani yoqish</button>
+    </div>
+  </div>
+</div>
+
+<!-- natija -->
+<div id="result" class="result hidden"></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="jsQR.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
