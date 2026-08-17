@@ -102,15 +102,17 @@ input:focus { outline: none; border-color: var(--green); }
 <div id="setup" class="setup hidden">
   <form id="setup-form" class="setup-card">
     <h1>Ovqat tarqatish</h1>
-    <p class="muted small">Skanerni tizimga ulash — bir marta kiritiladi.</p>
-    <label>Tizim havolasi (Apps Script)
+    <p class="muted small">
+      Skanerni tizimga ulash — bir marta. Tizimdagi <b>Ovqat tarqatish</b> oynasida
+      “Telefonga o‘rnatilgan skanerni ulash” havolasini bosing, 6 xonali kod chiqadi.
+    </p>
+    <label>Tizim havolasi (API)
       <input id="s-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" required>
     </label>
-    <label>Elektron pochta
-      <input id="s-email" type="email" autocomplete="username" required>
-    </label>
-    <label>Parol
-      <input id="s-pass" type="password" autocomplete="current-password" required>
+    <label>Ulash kodi
+      <input id="s-code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+             placeholder="000000" required
+             style="font-size:30px;text-align:center;letter-spacing:.25em;font-weight:700">
     </label>
     <div id="s-err" class="err hidden"></div>
     <button class="btn" type="submit">Ulash</button>

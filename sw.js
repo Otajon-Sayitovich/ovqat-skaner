@@ -1,7 +1,7 @@
 /* Service Worker — sahifani internetsiz ochish uchun.
    Ilova fayllari qurilmada saqlanadi; API so'rovlari hech qachon keshlanmaydi. */
 
-var CACHE = 'ovqat-skaner-v2';
+var CACHE = 'ovqat-skaner-v3';
 var SHELL = [
   './',
   'index.html',

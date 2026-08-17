@@ -344,11 +344,14 @@ var App = {
     }
     Cfg.url = url;
 
-    api('login', { email: $('s-email').value.trim(), password: $('s-pass').value }, null)
+    var code = $('s-code').value.replace(/\D/g, '');
+    if (code.length !== 6) {
+      err.textContent = 'Kod 6 xonali bo\'lishi kerak.';
+      err.classList.remove('hidden'); btn.disabled = false; return;
+    }
+
+    api('pair', { code: code }, null)
       .then(function (d) {
-        if (d.user.oynalar.indexOf('tarqatish') === -1) {
-          throw new Error("Bu foydalanuvchida 'Ovqat tarqatish' bo'limiga dostup yo'q");
-        }
         Cfg.token = d.token; Cfg.email = d.user.email;
         Store.set('api_url', Cfg.url);
         Store.set('token', Cfg.token);
@@ -482,8 +485,7 @@ var App = {
     Scanner.stop();
     UI.show('setup');
     $('s-url').value = Cfg.url || '';
-    $('s-email').value = Cfg.email || '';
-    $('s-pass').value = '';
+    $('s-code').value = '';
     if (message) {
       var err = $('s-err');
       err.textContent = message;
