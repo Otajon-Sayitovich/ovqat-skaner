@@ -67,6 +67,30 @@ function beep(ok) {
   try { if (navigator.vibrate) navigator.vibrate(ok ? 60 : [70, 60, 70]); } catch (e) {}
 }
 
+/* ------------------------------------------------------------------ uzatish
+ * Asosiy tizimdagi "Jonli skanerni ochish" tugmasi manzilning "#" qismida
+ * tizim havolasi va sessiya kalitini yuboradi. Ularni saqlab olib, manzilni
+ * darhol tozalaymiz — kalit brauzer tarixida qolmasin.
+ * "#" qismi serverga umuman yuborilmaydi.
+ */
+(function handoff() {
+  var h = (location.hash || '').replace(/^#/, '');
+  if (!h) return;
+  var p = {};
+  h.split('&').forEach(function (kv) {
+    var i = kv.indexOf('=');
+    if (i > 0) {
+      try { p[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); }
+      catch (e) {}
+    }
+  });
+  if (!p.url && !p.token) return;
+  if (p.url) Store.set('api_url', p.url);
+  if (p.token) Store.set('token', p.token);
+  try { history.replaceState(null, '', location.pathname + location.search); }
+  catch (e) { location.hash = ''; }
+})();
+
 /* ------------------------------------------------------------------ server */
 var Cfg = {
   url: Store.get('api_url', ''),
