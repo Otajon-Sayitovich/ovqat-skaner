@@ -118,6 +118,17 @@ function api(action, payload, token) {
   });
 }
 
+/**
+ * Server "kalitingiz yaroqsiz" deb javob berdimi?
+ * Bunda internet aybdor emas — qurilma qaytadan ulanishi kerak.
+ */
+function isAuthError(err) {
+  return /AUTH|dostup|bloklangan/i.test(String((err && err.message) || err));
+}
+
+var KALIT_ESKIRGAN = 'Kalit eskirgan yoki bekor qilingan. Tizimdan yangi 6 xonali ' +
+                     'kod olib, shu yerga kiriting.';
+
 /* ------------------------------------------------------------------ navbat */
 var Queue = {
   KEY: 'outbox',
@@ -146,8 +157,8 @@ var Queue = {
       if (Queue.size()) return Queue.flush();
     }).catch(function (err) {
       Queue.sending = false;
-      if (/AUTH|Tizimga kiring|dostup/i.test(err.message)) {
-        App.logout('Sessiya tugadi — qayta kiring');
+      if (isAuthError(err)) {
+        App.logout(KALIT_ESKIRGAN);
       } else {
         App.setOnline(false);
       }
@@ -373,13 +384,19 @@ var App = {
 
     if (Snap.data) {
       Scanner.start();
-      Snap.sync().catch(function () { App.setOnline(false); UI.status(); });
+      Snap.sync().catch(function (err) {
+        if (isAuthError(err)) { App.logout(KALIT_ESKIRGAN); return; }
+        App.setOnline(false); UI.status();
+      });
     } else {
       $('start-text').textContent = "O'quvchilar ro'yxati yuklanmoqda…";
       Snap.sync().then(function () {
         UI.status();
         Scanner.start();
       }).catch(function (err) {
+        // Kalit yaroqsiz bo'lsa, "internetni tekshiring" deb aldamaymiz —
+        // odam nima qilishini bilishi uchun darhol ulash oynasini ochamiz.
+        if (isAuthError(err)) { App.logout(KALIT_ESKIRGAN); return; }
         Scanner.fail("Ro'yxatni yuklab bo'lmadi: " + err.message +
                      ' — internetni tekshirib, qayta urining.');
       });
@@ -391,7 +408,9 @@ var App = {
     }, 15000);
     // Ro'yxatni vaqti-vaqti bilan yangilab turamiz (yangi o'quvchilar, statuslar)
     setInterval(function () {
-      if (App.online && !App.pending) Snap.sync().catch(function () {});
+      if (App.online && !App.pending) Snap.sync().catch(function (err) {
+        if (isAuthError(err)) App.logout(KALIT_ESKIRGAN);
+      });
     }, 300000);
   },
 
