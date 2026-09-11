@@ -302,14 +302,23 @@ var Scanner = {
 
   hit: function (text) {
     var now = Date.now();
-    if (text === Scanner.lastCode && now - Scanner.lastAt < 2500) return;
+    // Bir xil kartani ketma-ket o'qimaymiz. 2026-09-11 da 12 ta "ovqat olgan"
+    // xabarining 7 tasi shundan edi: saqlangandan keyin karta hali kamera
+    // oldida turgan, skaner uni darhol qayta o'qib qizil xabar chiqargan.
+    if (text === Scanner.lastCode && now - Scanner.lastAt < Scanner.TAKROR_MS) return;
     Scanner.lastCode = text; Scanner.lastAt = now;
     Scanner.paused = true;
     App.decide(text);
   },
 
+  // Qaror qabul qilingandan keyin (Saqlash / Bekor qilish) o'sha karta shuncha
+  // vaqt e'tiborsiz qoldiriladi - odam kartani olib ketishga ulgursin.
+  TAKROR_MS: 4000,
+
   resume: function () {
-    Scanner.lastCode = '';
+    // lastCode ni TOZALAMAYMIZ (ilgari tozalanardi va shu sabab karta darhol
+    // qayta o'qilardi). Aksincha, hisobni hozirdan boshlaymiz.
+    Scanner.lastAt = Date.now();
     Scanner.paused = false;
     if (!Scanner.running && !Scanner.stream) Scanner.start();
   }
