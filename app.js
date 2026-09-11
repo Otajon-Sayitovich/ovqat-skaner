@@ -12,7 +12,8 @@
 var MSG = {
   duplicate: "Bu o'quvchi ovqat olgan",
   unknown: 'Bu QR kod tizimda mavjud emas',
-  inactive: "Bu o'quvchi to'lov qilmagan yoki limit tugagan"
+  inactive: "Bu o'quvchi to'lov qilmagan yoki limit tugagan",
+  mablag: "Bu o'quvchining hisobida mablag' yetarli emas"
 };
 
 /* ------------------------------------------------------------------ saqlash */
@@ -149,8 +150,13 @@ var Queue = {
       batch.forEach(function (b) { done[b.client_uuid] = true; });
       Store.set(Queue.KEY, Queue.items().filter(function (i) { return !done[i.client_uuid]; }));
       if (res && res.results) {
+        var byUuid = {};
+        batch.forEach(function (b) { byUuid[b.client_uuid] = b; });
         res.results.forEach(function (r) {
-          if (r.natija === 'ok') Snap.markServed(r.oquvchi_id);
+          var item = byUuid[r.client_uuid];
+          if (!item) return;
+          if (r.natija === 'ok') Snap.markServed(item.oquvchi_id);
+          else if (r.natija === 'mablag' && item.natija_local === 'ok') Snap.refund(item.oquvchi_id);
         });
       }
       UI.status();
@@ -199,6 +205,23 @@ var Snap = {
   isServed: function (id) { return !!(Snap.data && Snap.data.served[id]); },
   markServed: function (id) {
     if (Snap.data && id) { Snap.data.served[id] = true; Snap.save(); }
+  },
+  /** Lokal balansdan 1 kunlik narxni yechadi (yakuniy qarorni server qiladi). */
+  charge: function (id) {
+    var s = Snap.student(id);
+    if (!s || s.balans === null || s.balans === undefined || !(s.narx > 0)) return;
+    s.balans = s.balans - s.narx;
+    Snap.save();
+  },
+  /** Server "mablag' yetmadi" desa - lokal "ok" qaytariladi. */
+  refund: function (id) {
+    var s = Snap.student(id);
+    if (Snap.data) delete Snap.data.served[id];
+    if (s) {
+      if (s.balans !== null && s.balans !== undefined && s.narx > 0) s.balans = s.balans + s.narx;
+      s.status = 'mablag';
+    }
+    Snap.save();
   },
   servedCount: function () { return Snap.data ? Object.keys(Snap.data.served).length : 0; },
   count: function () { return Snap.data ? Object.keys(Snap.data.students).length : 0; }
@@ -447,10 +470,15 @@ var App = {
     var id = m ? Number(m[1]) : null;
     var st = id ? Snap.student(id) : null;
 
+    // Tartib muhim: "ovqat olgan" mablag'dan oldin - bugun yegan o'quvchining
+    // puli tugagan bo'lsa ham, unga "ovqat olgan" deyiladi.
     var natija;
     if (!st) natija = 'unknown';
-    else if (st.status !== 'faol') natija = 'inactive';
+    else if (st.status !== 'faol' && st.status !== 'mablag') natija = 'inactive';
     else if (Snap.isServed(id)) natija = 'duplicate';
+    else if (st.status === 'mablag' ||
+             (st.balans !== null && st.balans !== undefined &&
+              st.narx > 0 && st.balans < st.narx)) natija = 'mablag';
     else natija = 'ok';
 
     App.pending = {
@@ -499,7 +527,10 @@ var App = {
     App.pending = null;
     $('result').classList.add('hidden');
     if (item) {
-      if (item.natija_local === 'ok' && item.oquvchi_id) Snap.markServed(item.oquvchi_id);
+      if (item.natija_local === 'ok' && item.oquvchi_id) {
+        Snap.markServed(item.oquvchi_id);
+        Snap.charge(item.oquvchi_id);
+      }
       Queue.push(item);
       Queue.flush();
     }
